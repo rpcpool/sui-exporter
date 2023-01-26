@@ -25,3 +25,11 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
+
+# License
+
+MIT
+
+# Attribution
+
+This software was developed by Triton One (https://triton.one). Patches, suggestions and improvements are always welcome.
