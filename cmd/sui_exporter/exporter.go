@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -18,7 +19,10 @@ type Exporter struct {
 	frequency      time.Duration
 	nodeStateMutex sync.RWMutex
 
+	nextEpochReferenceGasPrice uint64
+
 	referenceGasPriceDesc          *prometheus.Desc
+	nextEpochReferenceGasPriceDesc *prometheus.Desc
 	epochStartTimestampMs          *prometheus.Desc
 	storageFundBalance             *prometheus.Desc
 	stakeSubsidyBalance            *prometheus.Desc
@@ -46,6 +50,11 @@ func NewExporter(uri string, frequency int) *Exporter {
 		referenceGasPriceDesc: prometheus.NewDesc(
 			"sui_reference_gas_price",
 			"Information about gas price",
+			[]string{"epoch"}, nil,
+		),
+		nextEpochReferenceGasPriceDesc: prometheus.NewDesc(
+			"sui_next_epoch_reference_gas_price",
+			"Running estimation of the next epoch's reference gas price",
 			[]string{"epoch"}, nil,
 		),
 		epochStartTimestampMs: prometheus.NewDesc(
@@ -143,6 +152,7 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	e.nodeStateMutex.RLock()
 	ch <- prometheus.MustNewConstMetric(e.referenceGasPriceDesc, prometheus.GaugeValue, float64(e.state.ReferenceGasPrice), e.epoch)
+	ch <- prometheus.MustNewConstMetric(e.nextEpochReferenceGasPriceDesc, prometheus.GaugeValue, float64(e.nextEpochReferenceGasPrice), e.epoch)
 	ch <- prometheus.MustNewConstMetric(e.epochStartTimestampMs, prometheus.GaugeValue, float64(e.state.EpochStartTimestampMs), e.epoch)
 	ch <- prometheus.MustNewConstMetric(e.storageFundBalance, prometheus.GaugeValue, float64(e.state.StorageFundBalance.Value), e.epoch)
 	ch <- prometheus.MustNewConstMetric(e.stakeSubsidyBalance, prometheus.GaugeValue, float64(e.state.StakeSubsidy.Balance.Value), e.epoch)
@@ -166,6 +176,11 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	e.nodeStateMutex.RUnlock()
 }
 
+type GasQuote struct {
+	quote uint64
+	stake uint64
+}
+
 func (e *Exporter) WatchState() {
 	ticker := time.NewTicker(e.frequency * time.Second)
 
@@ -175,6 +190,31 @@ func (e *Exporter) WatchState() {
 		err := e.rpcClient.CallFor(context.Background(), &e.state, "sui_getSuiSystemState")
 		if err != nil {
 			log.Printf("Error getting node state: %v", err)
+		}
+
+		var gasQuotes []GasQuote
+		var totalStake uint64
+		for _, validator := range e.state.Validators.ActiveValidators {
+			nextEpochStake := validator.Metadata.NextEpochStake + validator.Metadata.NextEpochDelegation
+			gasQuote := GasQuote{
+				quote: validator.Metadata.NextEpochGasPrice,
+				stake: nextEpochStake,
+			}
+
+			gasQuotes = append(gasQuotes, gasQuote)
+			totalStake += nextEpochStake
+		}
+
+		// We count 2/3 by stake weight
+		var cumulativeStake uint64
+		countedStake := 2.0 / 3.0 * float64(totalStake)
+		sort.Slice(gasQuotes, func(i, j int) bool { return gasQuotes[i].quote < gasQuotes[j].quote })
+		for _, quote := range gasQuotes {
+			cumulativeStake += quote.stake
+			if float64(cumulativeStake) >= countedStake {
+				e.nextEpochReferenceGasPrice = quote.quote
+				break
+			}
 		}
 
 		// Store epoch as string for prometheus labels
