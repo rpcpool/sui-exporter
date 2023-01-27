@@ -167,6 +167,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(e.validatorPendingStake, prometheus.GaugeValue, float64(validator.PendingStake), e.epoch, validator.Metadata.SuiAddress, string(validator.Metadata.Name[:]))
 		ch <- prometheus.MustNewConstMetric(e.validatorPendingWithdrawal, prometheus.GaugeValue, float64(validator.PendingWithdraw), e.epoch, validator.Metadata.SuiAddress, string(validator.Metadata.Name[:]))
 		ch <- prometheus.MustNewConstMetric(e.validatorStake, prometheus.GaugeValue, float64(validator.StakeAmount), e.epoch, validator.Metadata.SuiAddress, string(validator.Metadata.Name[:]))
+		ch <- prometheus.MustNewConstMetric(e.validatorDelegationBalance, prometheus.GaugeValue, float64(validator.DelegationStakingPool.SuiBalance), e.epoch, validator.Metadata.SuiAddress, string(validator.Metadata.Name[:]))
 		ch <- prometheus.MustNewConstMetric(e.validatorNextEpochStake, prometheus.GaugeValue, float64(validator.Metadata.NextEpochStake), e.epoch, validator.Metadata.SuiAddress, string(validator.Metadata.Name[:]))
 		ch <- prometheus.MustNewConstMetric(e.validatorNextEpochDelegation, prometheus.GaugeValue, float64(validator.Metadata.NextEpochDelegation), e.epoch, validator.Metadata.SuiAddress, string(validator.Metadata.Name[:]))
 		ch <- prometheus.MustNewConstMetric(e.validatorNextEpochGasPrice, prometheus.GaugeValue, float64(validator.Metadata.NextEpochGasPrice), e.epoch, validator.Metadata.SuiAddress, string(validator.Metadata.Name[:]))
