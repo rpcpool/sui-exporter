@@ -69,6 +69,9 @@ type ValidatorMetadata struct {
 	NextEpochDelegation     uint64 `json:"next_epoch_delegation"`
 	NextEpochGasPrice       uint64 `json:"next_epoch_gas_price"`
 	NextEpochCommissionRate uint64 `json:"next_epoch_comission_rate"`
+	NextEpochTotalStake uint64
+	NextEpochStakeShare     float64
+	NextEpochSelfStakeShare float64
 }
 
 type StakePool struct {

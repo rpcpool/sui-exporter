@@ -21,25 +21,27 @@ type Exporter struct {
 
 	nextEpochReferenceGasPrice uint64
 
-	referenceGasPriceDesc          *prometheus.Desc
-	nextEpochReferenceGasPriceDesc *prometheus.Desc
-	epochStartTimestampMs          *prometheus.Desc
-	storageFundBalance             *prometheus.Desc
-	stakeSubsidyBalance            *prometheus.Desc
-	stakeSubsidyCurrentEpochAmount *prometheus.Desc
-	totalValidatorStake            *prometheus.Desc
-	totalDelegationStake           *prometheus.Desc
-	validatorVotingPower           *prometheus.Desc
-	validatorCommission            *prometheus.Desc
-	validatorGasPrice              *prometheus.Desc
-	validatorPendingStake          *prometheus.Desc
-	validatorPendingWithdrawal     *prometheus.Desc
-	validatorStake                 *prometheus.Desc
-	validatorDelegationBalance     *prometheus.Desc
-	validatorNextEpochStake        *prometheus.Desc
-	validatorNextEpochDelegation   *prometheus.Desc
-	validatorNextEpochGasPrice     *prometheus.Desc
-	validatorNextEpochCommission   *prometheus.Desc
+	referenceGasPriceDesc            *prometheus.Desc
+	nextEpochReferenceGasPriceDesc   *prometheus.Desc
+	epochStartTimestampMs            *prometheus.Desc
+	storageFundBalance               *prometheus.Desc
+	stakeSubsidyBalance              *prometheus.Desc
+	stakeSubsidyCurrentEpochAmount   *prometheus.Desc
+	totalValidatorStake              *prometheus.Desc
+	totalDelegationStake             *prometheus.Desc
+	validatorVotingPower             *prometheus.Desc
+	validatorCommission              *prometheus.Desc
+	validatorGasPrice                *prometheus.Desc
+	validatorPendingStake            *prometheus.Desc
+	validatorPendingWithdrawal       *prometheus.Desc
+	validatorStake                   *prometheus.Desc
+	validatorDelegationBalance       *prometheus.Desc
+	validatorNextEpochStake          *prometheus.Desc
+	validatorNextEpochDelegation     *prometheus.Desc
+	validatorNextEpochGasPrice       *prometheus.Desc
+	validatorNextEpochCommission     *prometheus.Desc
+	validatorNextEpochStakeShare     *prometheus.Desc
+	validatorNextEpochSelfStakeShare *prometheus.Desc
 }
 
 func NewExporter(uri string, frequency int) *Exporter {
@@ -142,6 +144,16 @@ func NewExporter(uri string, frequency int) *Exporter {
 			"Validator next epoch commission",
 			[]string{"epoch", "address", "name"}, nil,
 		),
+		validatorNextEpochStakeShare: prometheus.NewDesc(
+			"sui_validator_next_epoch_stake_share",
+			"Validator next epoch stake share",
+			[]string{"epoch", "address", "name"}, nil,
+		),
+		validatorNextEpochSelfStakeShare: prometheus.NewDesc(
+			"sui_validator_next_epoch_self_stake_share",
+			"Validator next epoch self stake share",
+			[]string{"epoch", "address", "name"}, nil,
+		),
 	}
 }
 
@@ -172,6 +184,8 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(e.validatorNextEpochDelegation, prometheus.GaugeValue, float64(validator.Metadata.NextEpochDelegation), e.epoch, validator.Metadata.SuiAddress, string(validator.Metadata.Name[:]))
 		ch <- prometheus.MustNewConstMetric(e.validatorNextEpochGasPrice, prometheus.GaugeValue, float64(validator.Metadata.NextEpochGasPrice), e.epoch, validator.Metadata.SuiAddress, string(validator.Metadata.Name[:]))
 		ch <- prometheus.MustNewConstMetric(e.validatorNextEpochCommission, prometheus.GaugeValue, float64(validator.Metadata.NextEpochCommissionRate), e.epoch, validator.Metadata.SuiAddress, string(validator.Metadata.Name[:]))
+		ch <- prometheus.MustNewConstMetric(e.validatorNextEpochStakeShare, prometheus.GaugeValue, float64(validator.Metadata.NextEpochStakeShare), e.epoch, validator.Metadata.SuiAddress, string(validator.Metadata.Name[:]))
+		ch <- prometheus.MustNewConstMetric(e.validatorNextEpochSelfStakeShare, prometheus.GaugeValue, float64(validator.Metadata.NextEpochSelfStakeShare), e.epoch, validator.Metadata.SuiAddress, string(validator.Metadata.Name[:]))
 	}
 
 	e.nodeStateMutex.RUnlock()
@@ -179,7 +193,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
 type GasQuote struct {
 	quote uint64
-	stake uint64
+	vote  uint64
 }
 
 func (e *Exporter) WatchState() {
@@ -193,29 +207,43 @@ func (e *Exporter) WatchState() {
 			log.Printf("Error getting node state: %v", err)
 		}
 
-		var gasQuotes []GasQuote
 		var totalStake uint64
+		var totalVotingPower uint64
+
+		var gasQuotes []GasQuote
+
 		for _, validator := range e.state.Validators.ActiveValidators {
-			nextEpochStake := validator.Metadata.NextEpochStake + validator.Metadata.NextEpochDelegation
+			// Calculate the next epoch expected share
+			validator.Metadata.NextEpochTotalStake = validator.Metadata.NextEpochStake + validator.Metadata.NextEpochDelegation
 			gasQuote := GasQuote{
 				quote: validator.Metadata.NextEpochGasPrice,
-				stake: nextEpochStake,
+				vote:  validator.VotingPower,
 			}
 
 			gasQuotes = append(gasQuotes, gasQuote)
-			totalStake += nextEpochStake
+			totalStake += validator.Metadata.NextEpochTotalStake
+			totalVotingPower += validator.VotingPower
 		}
 
 		// We count 2/3 by stake weight
-		var cumulativeStake uint64
-		countedStake := 2.0 / 3.0 * float64(totalStake)
+		var cumulativeVotePower uint64
+		countedVotePower := 2.0 / 3.0 * float64(totalVotingPower)
 		sort.Slice(gasQuotes, func(i, j int) bool { return gasQuotes[i].quote < gasQuotes[j].quote })
 		for _, quote := range gasQuotes {
-			cumulativeStake += quote.stake
-			if float64(cumulativeStake) >= countedStake {
+			cumulativeVotePower += quote.vote
+			if float64(cumulativeVotePower) >= countedVotePower {
 				e.nextEpochReferenceGasPrice = quote.quote
 				break
 			}
+		}
+
+		// Get the validator fee calculation params
+		for _, validator := range e.state.Validators.ActiveValidators {
+			validator.Metadata.NextEpochSelfStakeShare =
+				float64(validator.Metadata.NextEpochStake) /
+					float64(validator.Metadata.NextEpochTotalStake)
+			validator.Metadata.NextEpochStakeShare =
+				float64(validator.Metadata.NextEpochTotalStake) / float64(totalStake)
 		}
 
 		// Store epoch as string for prometheus labels
