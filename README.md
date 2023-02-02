@@ -25,6 +25,23 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
+# Metrics exported
+
+## Base metrics
+
+Details about current SUI state like gas price, epoch starts, stake and transaction number.
+
+## Checkpoint metrics
+
+Details about checkpoints, including computation cost and storage cost.
+
+Disable with ```-enable-checkpoint-metrics=false```
+
+## Validator metrics
+
+Details about the validators on their network such as their gas price survey items and compute costs as well as stake balances.
+
+Disable with ```-enable-validator-metrics=false```
 
 # License
 
