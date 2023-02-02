@@ -69,7 +69,7 @@ type ValidatorMetadata struct {
 	NextEpochDelegation     uint64 `json:"next_epoch_delegation"`
 	NextEpochGasPrice       uint64 `json:"next_epoch_gas_price"`
 	NextEpochCommissionRate uint64 `json:"next_epoch_comission_rate"`
-	NextEpochTotalStake uint64
+	NextEpochTotalStake     uint64
 	NextEpochStakeShare     float64
 	NextEpochSelfStakeShare float64
 }
@@ -98,4 +98,24 @@ type Withdrawals struct {
 type WithdrawContent struct {
 	Id   string
 	Size uint64
+}
+
+type CheckpointContentsDigest string
+type CheckpointDigest string
+
+type CheckpointSummary struct {
+	ContentDigest              CheckpointContentsDigest `json:"content_digest"`
+	Epoch                      uint64                   `json:"epoch"`
+	EpochRollingGasCostSummary GasCostSummary           `json:"epoch_rolling_gas_cost_summary"`
+	NetworkTotalTransactions   uint64                   `json:"network_total_transactions"`
+	NextEpochCommittee         interface{}              `json:"next_epoch_committee"`
+	PreviousDigest             CheckpointDigest         `json:"previous_digest"`
+	SequenceNumber             uint64                   `json:"sequence_number"`
+	TimestampMs                uint64                   `json:"timestamp_ms"`
+}
+
+type GasCostSummary struct {
+	ComputationCost uint64 `json:"computation_cost"`
+	StorageCost     uint64 `json:"storage_cost"`
+	StorageRebate   uint64 `json:"storage_rebate"`
 }

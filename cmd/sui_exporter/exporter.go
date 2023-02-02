@@ -13,7 +13,12 @@ import (
 )
 
 type Exporter struct {
-	state          *SuiSystemState
+	state             *SuiSystemState
+	checkpointSummary *CheckpointSummary
+
+	latestCheckpointSequenceNumber uint64
+	totalTransactions              uint64
+
 	epoch          string
 	rpcClient      jsonrpc.RPCClient
 	frequency      time.Duration
@@ -21,14 +26,17 @@ type Exporter struct {
 
 	nextEpochReferenceGasPrice uint64
 
-	referenceGasPriceDesc            *prometheus.Desc
-	nextEpochReferenceGasPriceDesc   *prometheus.Desc
-	epochStartTimestampMs            *prometheus.Desc
-	storageFundBalance               *prometheus.Desc
-	stakeSubsidyBalance              *prometheus.Desc
-	stakeSubsidyCurrentEpochAmount   *prometheus.Desc
-	totalValidatorStake              *prometheus.Desc
-	totalDelegationStake             *prometheus.Desc
+	referenceGasPriceDesc          *prometheus.Desc
+	nextEpochReferenceGasPriceDesc *prometheus.Desc
+	epochStartTimestampMs          *prometheus.Desc
+	storageFundBalance             *prometheus.Desc
+	stakeSubsidyBalance            *prometheus.Desc
+	stakeSubsidyCurrentEpochAmount *prometheus.Desc
+	totalValidatorStake            *prometheus.Desc
+	totalDelegationStake           *prometheus.Desc
+	totalTransactionsNumber        *prometheus.Desc
+
+	// Validator specific metrics
 	validatorVotingPower             *prometheus.Desc
 	validatorCommission              *prometheus.Desc
 	validatorGasPrice                *prometheus.Desc
@@ -42,6 +50,15 @@ type Exporter struct {
 	validatorNextEpochCommission     *prometheus.Desc
 	validatorNextEpochStakeShare     *prometheus.Desc
 	validatorNextEpochSelfStakeShare *prometheus.Desc
+
+	// Checkpoint metrics
+	checkpointSummaryDesc              *prometheus.Desc
+	checkpointSequenceNumber           *prometheus.Desc
+	checkpointTimestampMs              *prometheus.Desc
+	checkpointNetworkTotalTransactions *prometheus.Desc
+	checkpointEpochComputationCost     *prometheus.Desc
+	checkpointEpochStorageCost         *prometheus.Desc
+	checkpointEpochStorageRebate       *prometheus.Desc
 }
 
 func NewExporter(uri string, frequency int) *Exporter {
@@ -154,7 +171,49 @@ func NewExporter(uri string, frequency int) *Exporter {
 			"Validator next epoch self stake share",
 			[]string{"epoch", "address", "name"}, nil,
 		),
+		totalTransactionsNumber: prometheus.NewDesc(
+			"sui_total_transactions_number",
+			"Total transactions number",
+			[]string{"epoch"}, nil,
+		),
+		checkpointSequenceNumber: prometheus.NewDesc(
+			"sui_checkpoint_sequence_number",
+			"Checkpoint sequence number",
+			[]string{"epoch"}, nil,
+		),
+		checkpointSummaryDesc: prometheus.NewDesc(
+			"sui_checkpoint_summary",
+			"Checkpoint summary",
+			[]string{"epoch", "checkpoint", "digest", "previous_digest", "final_checkpoint"}, nil,
+		),
+		checkpointTimestampMs: prometheus.NewDesc(
+			"sui_checkpoint_timestamp_ms",
+			"Checkpoint timestamp in milliseconds",
+
+			[]string{"epoch", "checkpoint"}, nil,
+		),
+		checkpointNetworkTotalTransactions: prometheus.NewDesc(
+			"sui_checkpoint_network_total_transactions",
+			"Checkpoint network total transactions",
+			[]string{"epoch", "checkpoint"}, nil,
+		),
+		checkpointEpochComputationCost: prometheus.NewDesc(
+			"sui_checkpoint_epoch_computation_cost",
+			"Checkpoint epoch computation cost",
+			[]string{"epoch", "checkpoint"}, nil,
+		),
+		checkpointEpochStorageCost: prometheus.NewDesc(
+			"sui_checkpoint_epoch_storage_cost",
+			"Checkpoint epoch storage cost",
+			[]string{"epoch", "checkpoint"}, nil,
+		),
+		checkpointEpochStorageRebate: prometheus.NewDesc(
+			"sui_checkpoint_epoch_storage_rebate",
+			"Checkpoint epoch storage rebate",
+			[]string{"epoch", "checkpoint"}, nil,
+		),
 	}
+
 }
 
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
@@ -171,6 +230,17 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(e.stakeSubsidyCurrentEpochAmount, prometheus.GaugeValue, float64(e.state.StakeSubsidy.CurrentEpochAmount), e.epoch)
 	ch <- prometheus.MustNewConstMetric(e.totalValidatorStake, prometheus.GaugeValue, float64(e.state.Validators.ValidatorStake), e.epoch)
 	ch <- prometheus.MustNewConstMetric(e.totalDelegationStake, prometheus.GaugeValue, float64(e.state.Validators.DelegationStake), e.epoch)
+	ch <- prometheus.MustNewConstMetric(e.totalTransactionsNumber, prometheus.GaugeValue, float64(e.totalTransactions), e.epoch)
+	ch <- prometheus.MustNewConstMetric(e.checkpointSequenceNumber, prometheus.GaugeValue, float64(e.latestCheckpointSequenceNumber), e.epoch)
+
+	lastCheckpoint := (e.checkpointSummary.NextEpochCommittee != nil)
+	ch <- prometheus.MustNewConstMetric(e.checkpointSummaryDesc, prometheus.GaugeValue, 1, e.epoch, strconv.Itoa(int(e.checkpointSummary.SequenceNumber)), string(e.checkpointSummary.ContentDigest), string(e.checkpointSummary.PreviousDigest), strconv.FormatBool(lastCheckpoint))
+
+	ch <- prometheus.MustNewConstMetric(e.checkpointTimestampMs, prometheus.GaugeValue, float64(e.checkpointSummary.TimestampMs), e.epoch, strconv.Itoa(int(e.checkpointSummary.SequenceNumber)))
+	ch <- prometheus.MustNewConstMetric(e.checkpointNetworkTotalTransactions, prometheus.GaugeValue, float64(e.checkpointSummary.NetworkTotalTransactions), e.epoch, strconv.Itoa(int(e.checkpointSummary.SequenceNumber)))
+	ch <- prometheus.MustNewConstMetric(e.checkpointEpochComputationCost, prometheus.GaugeValue, float64(e.checkpointSummary.EpochRollingGasCostSummary.ComputationCost), e.epoch, strconv.Itoa(int(e.checkpointSummary.SequenceNumber)))
+	ch <- prometheus.MustNewConstMetric(e.checkpointEpochStorageCost, prometheus.GaugeValue, float64(e.checkpointSummary.EpochRollingGasCostSummary.StorageCost), e.epoch, strconv.Itoa(int(e.checkpointSummary.SequenceNumber)))
+	ch <- prometheus.MustNewConstMetric(e.checkpointEpochStorageRebate, prometheus.GaugeValue, float64(e.checkpointSummary.EpochRollingGasCostSummary.StorageRebate), e.epoch, strconv.Itoa(int(e.checkpointSummary.SequenceNumber)))
 
 	for _, validator := range e.state.Validators.ActiveValidators {
 		ch <- prometheus.MustNewConstMetric(e.validatorVotingPower, prometheus.GaugeValue, float64(validator.VotingPower), e.epoch, validator.Metadata.SuiAddress, string(validator.Metadata.Name[:]))
@@ -202,7 +272,22 @@ func (e *Exporter) WatchState() {
 	for {
 		e.nodeStateMutex.Lock()
 
-		err := e.rpcClient.CallFor(context.Background(), &e.state, "sui_getSuiSystemState")
+		err := e.rpcClient.CallFor(context.Background(), &e.totalTransactions, "sui_getTotalTransactionNumber")
+		if err != nil {
+			log.Printf("Error getting transaction number: %v", err)
+		}
+
+		err = e.rpcClient.CallFor(context.Background(), &e.latestCheckpointSequenceNumber, "sui_getLatestCheckpointSequenceNumber")
+		if err != nil {
+			log.Printf("Error getting latest checkpoint sequence number: %v", err)
+		}
+
+		err = e.rpcClient.CallFor(context.Background(), &e.checkpointSummary, "sui_getCheckpointSummary", e.latestCheckpointSequenceNumber)
+		if err != nil {
+			log.Printf("Error getting checkpoint summary: %v", err)
+		}
+
+		err = e.rpcClient.CallFor(context.Background(), &e.state, "sui_getSuiSystemState")
 		if err != nil {
 			log.Printf("Error getting node state: %v", err)
 		}
@@ -212,16 +297,17 @@ func (e *Exporter) WatchState() {
 
 		var gasQuotes []GasQuote
 
-		for _, validator := range e.state.Validators.ActiveValidators {
+		for i, validator := range e.state.Validators.ActiveValidators {
 			// Calculate the next epoch expected share
-			validator.Metadata.NextEpochTotalStake = validator.Metadata.NextEpochStake + validator.Metadata.NextEpochDelegation
+			totalValidatorStake := validator.Metadata.NextEpochStake + validator.Metadata.NextEpochDelegation
 			gasQuote := GasQuote{
 				quote: validator.Metadata.NextEpochGasPrice,
 				vote:  validator.VotingPower,
 			}
 
 			gasQuotes = append(gasQuotes, gasQuote)
-			totalStake += validator.Metadata.NextEpochTotalStake
+			e.state.Validators.ActiveValidators[i].Metadata.NextEpochTotalStake = totalValidatorStake
+			totalStake += totalValidatorStake
 			totalVotingPower += validator.VotingPower
 		}
 
@@ -238,11 +324,11 @@ func (e *Exporter) WatchState() {
 		}
 
 		// Get the validator fee calculation params
-		for _, validator := range e.state.Validators.ActiveValidators {
-			validator.Metadata.NextEpochSelfStakeShare =
+		for i, validator := range e.state.Validators.ActiveValidators {
+			e.state.Validators.ActiveValidators[i].Metadata.NextEpochSelfStakeShare =
 				float64(validator.Metadata.NextEpochStake) /
 					float64(validator.Metadata.NextEpochTotalStake)
-			validator.Metadata.NextEpochStakeShare =
+			e.state.Validators.ActiveValidators[i].Metadata.NextEpochStakeShare =
 				float64(validator.Metadata.NextEpochTotalStake) / float64(totalStake)
 		}
 
