@@ -19,6 +19,7 @@ var (
 	validatorReports  = flag.Bool("export-validator-reports", true, "Export validator reports")
 	version           = flag.Bool("version", false, "print version")
 	frequency         = flag.Int(("frequency"), 120, "frequency of metrics collection")
+	timeout           = flag.Int(("timeout"), 10, "rpc timeout")
 )
 
 func main() {
@@ -38,10 +39,10 @@ func main() {
 	log.Println("SUI Exporter v0.1")
 	log.Println("Listening on: ", *addr+"/metrics")
 	log.Println("Using SUI RPC: ", *rpcAddr)
-	log.Println("Updating every", *frequency, "seconds")
+	log.Println("Updating every", *frequency, "seconds, rpc timeout", *timeout, "seconds")
 	log.Println("Exporting base metrics: true, Exporting validator metrics:", *validatorMetrics, ", Exporting checkpoint metrics:", *checkpointMetrics, ", Exporting validator reports:", *validatorReports)
 
-	exporter := NewExporter(*rpcAddr, *frequency, *validatorMetrics, *checkpointMetrics, *validatorReports)
+	exporter := NewExporter(*rpcAddr, *frequency, *timeout, *validatorMetrics, *checkpointMetrics, *validatorReports)
 	prometheus.MustRegister(exporter)
 
 	go exporter.WatchState()
