@@ -15,6 +15,7 @@ import (
 type Exporter struct {
 	exportValidatorMetrics  bool
 	exportCheckpointMetrics bool
+	exportValidatorReports  bool
 
 	state             *SuiSystemState
 	checkpointSummary *CheckpointSummary
@@ -66,11 +67,12 @@ type Exporter struct {
 	checkpointEpochStorageRebate       *prometheus.Desc
 }
 
-func NewExporter(uri string, frequency int, exportValidatorMetrics bool, exportCheckpointMetrics bool) *Exporter {
+func NewExporter(uri string, frequency int, exportValidatorMetrics bool, exportCheckpointMetrics bool, exportValidatorReports bool) *Exporter {
 	return &Exporter{
 		state:                   nil,
 		exportValidatorMetrics:  exportValidatorMetrics,
 		exportCheckpointMetrics: exportCheckpointMetrics,
+		exportValidatorReports:  exportValidatorReports,
 		rpcClient:               jsonrpc.NewClient(uri),
 		frequency:               time.Duration(frequency),
 		referenceGasPriceDesc: prometheus.NewDesc(
@@ -278,10 +280,12 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		}
 	}
 
-	for _, reportedValidator := range e.state.ValidatorReportRecords.Records {
+	if e.exportValidatorReports {
+		for _, reportedValidator := range e.state.ValidatorReportRecords.Records {
 
-		for _, report := range reportedValidator.Reports {
-			ch <- prometheus.MustNewConstMetric(e.validatorReport, prometheus.GaugeValue, float64(1), e.epoch, reportedValidator.Key, report)
+			for _, report := range reportedValidator.Reports {
+				ch <- prometheus.MustNewConstMetric(e.validatorReport, prometheus.GaugeValue, float64(1), e.epoch, reportedValidator.Key, report)
+			}
 		}
 	}
 
