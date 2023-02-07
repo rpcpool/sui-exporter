@@ -39,6 +39,8 @@ type Exporter struct {
 	totalDelegationStake           *prometheus.Desc
 	totalTransactionsNumber        *prometheus.Desc
 
+	validatorReport *prometheus.Desc
+
 	// Validator specific metrics
 	validatorVotingPower             *prometheus.Desc
 	validatorCommission              *prometheus.Desc
@@ -217,6 +219,11 @@ func NewExporter(uri string, frequency int, exportValidatorMetrics bool, exportC
 			"Checkpoint epoch storage rebate",
 			[]string{"epoch", "checkpoint"}, nil,
 		),
+		validatorReport: prometheus.NewDesc(
+			"sui_validator_report",
+			"Validator slashing report",
+			[]string{"epoch", "address", "reporter"}, nil,
+		),
 	}
 
 }
@@ -226,7 +233,11 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
+	if e.state == nil {
+		return
+	}
 	e.nodeStateMutex.RLock()
+
 	ch <- prometheus.MustNewConstMetric(e.referenceGasPriceDesc, prometheus.GaugeValue, float64(e.state.ReferenceGasPrice), e.epoch)
 	ch <- prometheus.MustNewConstMetric(e.nextEpochReferenceGasPriceDesc, prometheus.GaugeValue, float64(e.nextEpochReferenceGasPrice), e.epoch)
 	ch <- prometheus.MustNewConstMetric(e.epochStartTimestampMs, prometheus.GaugeValue, float64(e.state.EpochStartTimestampMs), e.epoch)
@@ -267,6 +278,13 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		}
 	}
 
+	for _, reportedValidator := range e.state.ValidatorReportRecords.Records {
+
+		for _, report := range reportedValidator.Reports {
+			ch <- prometheus.MustNewConstMetric(e.validatorReport, prometheus.GaugeValue, float64(1), e.epoch, reportedValidator.Key, report)
+		}
+	}
+
 	e.nodeStateMutex.RUnlock()
 }
 
@@ -281,30 +299,35 @@ func (e *Exporter) WatchState() {
 	for {
 		e.nodeStateMutex.Lock()
 
-		err := e.rpcClient.CallFor(context.Background(), &e.totalTransactions, "sui_getTotalTransactionNumber")
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+
+		err := e.rpcClient.CallFor(ctx, &e.totalTransactions, "sui_getTotalTransactionNumber")
 		if err != nil {
 			log.Printf("Error getting transaction number: %v", err)
+			continue
 		}
 
 		if e.exportCheckpointMetrics {
-			err = e.rpcClient.CallFor(context.Background(), &e.latestCheckpointSequenceNumber, "sui_getLatestCheckpointSequenceNumber")
+			err = e.rpcClient.CallFor(ctx, &e.latestCheckpointSequenceNumber, "sui_getLatestCheckpointSequenceNumber")
 			if err != nil {
 				log.Printf("Error getting latest checkpoint sequence number: %v", err)
+				continue
 			}
 
-			err = e.rpcClient.CallFor(context.Background(), &e.checkpointSummary, "sui_getCheckpointSummary", e.latestCheckpointSequenceNumber)
+			err = e.rpcClient.CallFor(ctx, &e.checkpointSummary, "sui_getCheckpointSummary", e.latestCheckpointSequenceNumber)
 			if err != nil {
 				log.Printf("Error getting checkpoint summary: %v", err)
+				continue
 			}
 		}
 
-		err = e.rpcClient.CallFor(context.Background(), &e.state, "sui_getSuiSystemState")
+		err = e.rpcClient.CallFor(ctx, &e.state, "sui_getSuiSystemState")
 		if err != nil {
 			log.Printf("Error getting node state: %v", err)
+			continue
 		}
 
 		if e.exportValidatorMetrics {
-
 			var totalStake uint64
 			var totalVotingPower uint64
 
@@ -349,6 +372,9 @@ func (e *Exporter) WatchState() {
 
 		// Store epoch as string for prometheus labels
 		e.epoch = strconv.Itoa(int(e.state.Epoch))
+
+		log.Println("Updated node state: checkpoint", e.state.Epoch)
+		cancel()
 
 		e.nodeStateMutex.Unlock()
 		<-ticker.C

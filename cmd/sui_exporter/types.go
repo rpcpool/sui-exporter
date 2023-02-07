@@ -1,17 +1,67 @@
 package main
 
+import (
+	"encoding/json"
+	"fmt"
+)
+
 type SuiSystemState struct {
-	Epoch                  uint64           `json:"epoch"`
-	EpochStartTimestampMs  uint64           `json:"epoch_start_timestamp_ms"`
-	Info                   string           `json:"uid"`
-	Parameters             SystemParameters `json:"parameters"`
-	ReferenceGasPrice      uint64           `json:"reference_gas_price"`
-	SafeMode               bool             `json:"safe_mode"`
-	StakeSubsidy           StakeSubsidy     `json:"stake_subsidy"`
-	StorageFundBalance     Balance          `json:"storage_fund"`
-	TreasuryCap            Supply           `json:"treasury_cap"`
-	ValidatorReportRecords interface{}      `json:"validator_report_records"`
-	Validators             ValidatorSet     `json:"validators"`
+	Epoch                  uint64            `json:"epoch"`
+	EpochStartTimestampMs  uint64            `json:"epoch_start_timestamp_ms"`
+	Info                   string            `json:"uid"`
+	Parameters             SystemParameters  `json:"parameters"`
+	ReferenceGasPrice      uint64            `json:"reference_gas_price"`
+	SafeMode               bool              `json:"safe_mode"`
+	StakeSubsidy           StakeSubsidy      `json:"stake_subsidy"`
+	StorageFundBalance     Balance           `json:"storage_fund"`
+	TreasuryCap            Supply            `json:"treasury_cap"`
+	ValidatorReportRecords *ValidatorReports `json:"validator_report_records"`
+	Validators             ValidatorSet      `json:"validators"`
+}
+type ValidatorReports struct {
+	Records []ValidatorReport
+}
+
+type ValidatorReport struct {
+	Key     string
+	Reports []string
+}
+
+// Custom unmarshaller to make the validator reports look nicer
+// We chuck away the "contents" dicts that exists on both levels
+func (vr *ValidatorReports) UnmarshalJSON(b []byte) error {
+	if string(b) == "null" || string(b) == `""` {
+		return nil
+	}
+
+	var f interface{}
+
+	err := json.Unmarshal(b, &f)
+	if err != nil {
+		return err
+	}
+
+	m := f.(map[string]interface{})
+
+	// Has a single key, "contents", skip this key
+	reports := m["contents"].([]interface{})
+
+	// Parses all the validator reports
+	for _, report := range reports {
+		var single_vr *ValidatorReport = new(ValidatorReport)
+		r := report.(map[string]interface{})
+
+		single_vr.Key = r["key"].(string)
+		c := (r["value"].(map[string]interface{}))["contents"].([]interface{})
+		// Append all the reports
+		for i := range c {
+			single_vr.Reports = append(single_vr.Reports, fmt.Sprintf("%v", c[i]))
+		}
+
+		vr.Records = append(vr.Records, *single_vr)
+	}
+
+	return nil
 }
 
 type SystemParameters struct {
