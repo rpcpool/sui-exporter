@@ -301,7 +301,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 						reporter_name = string(validator.Metadata.Name[:])
 					}
 				}
-				ch <- prometheus.MustNewConstMetric(e.validatorReport, prometheus.GaugeValue, float64(1), e.epoch, reportedValidator.Key, name, report, reporter_name)
+				ch <- prometheus.MustNewConstMetric(e.validatorReport, prometheus.CounterValue, float64(1), e.epoch, reportedValidator.Key, name, report, reporter_name)
 			}
 		}
 	}

@@ -47,6 +47,9 @@ func (vr *ValidatorReports) UnmarshalJSON(b []byte) error {
 	reports := m["contents"].([]interface{})
 
 	// Parses all the validator reports
+	// @TODO this involves copying a bunch of memory, possibly unnecessary
+	var parsed_reports []ValidatorReport
+
 	for _, report := range reports {
 		var single_vr *ValidatorReport = new(ValidatorReport)
 		r := report.(map[string]interface{})
@@ -58,8 +61,10 @@ func (vr *ValidatorReports) UnmarshalJSON(b []byte) error {
 			single_vr.Reports = append(single_vr.Reports, fmt.Sprintf("%v", c[i]))
 		}
 
-		vr.Records = append(vr.Records, *single_vr)
+		parsed_reports = append(parsed_reports, *single_vr)
 	}
+
+	vr.Records = parsed_reports
 
 	return nil
 }
