@@ -226,7 +226,7 @@ func NewExporter(uri string, frequency int, timeout int, exportValidatorMetrics 
 		validatorReport: prometheus.NewDesc(
 			"sui_validator_report",
 			"Validator slashing report",
-			[]string{"epoch", "address", "reporter"}, nil,
+			[]string{"epoch", "address", "name", "reporter", "reporter_name"}, nil,
 		),
 	}
 
@@ -287,9 +287,21 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
 	if e.exportValidatorReports {
 		for _, reportedValidator := range e.state.ValidatorReportRecords.Records {
+			var name string
+			for _, validator := range e.state.Validators.ActiveValidators {
+				if validator.Metadata.SuiAddress == reportedValidator.Key {
+					name = string(validator.Metadata.Name[:])
+				}
+			}
 
 			for _, report := range reportedValidator.Reports {
-				ch <- prometheus.MustNewConstMetric(e.validatorReport, prometheus.GaugeValue, float64(1), e.epoch, reportedValidator.Key, report)
+				var reporter_name string
+				for _, validator := range e.state.Validators.ActiveValidators {
+					if validator.Metadata.SuiAddress == report {
+						reporter_name = string(validator.Metadata.Name[:])
+					}
+				}
+				ch <- prometheus.MustNewConstMetric(e.validatorReport, prometheus.GaugeValue, float64(1), e.epoch, reportedValidator.Key, name, report, reporter_name)
 			}
 		}
 	}
