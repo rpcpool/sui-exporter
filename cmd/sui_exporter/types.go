@@ -5,6 +5,104 @@ import (
 	"fmt"
 )
 
+type SuiAddress string
+
+type SuiValidatorSummary struct {
+	SuiAddress                   SuiAddress `json:"suiAddress"`
+	NextEpochNetAddress          string     `json:"nextEpochNetAddress"`
+	PoolTokenBalance             uint64     `json:"poolTokenBalance"`
+	P2PAddress                   string     `json:"p2pAddress"`
+	Name                         string     `json:"name"`
+	StakingPoolActivationEpoch   uint64     `json:"stakingPoolActivationEpoch"`
+	CommissionRate               uint64     `json:"commissionRate"`
+	NextEpochPrimaryAddress      string     `json:"nextEpochPrimaryAddress"`
+	VotingPower                  uint64     `json:"votingPower"`
+	StakingPoolId                string     `json:"stakingPoolId"`
+	NextEpochWorkerPubkeyBytes   string     `json:"nextEpochWorkerPubkeyBytes"`
+	ImageUrl                     string     `json:"imageUrl"`
+	NetAddress                   string     `json:"netAddress"`
+	NetworkPubkeyBytes           string     `json:"networkPubkeyBytes"`
+	NextEpochNetworkPubkeyBytes  string     `json:"nextEpochNetworkPubkeyBytes"`
+	NextEpochProofOfPossession   string     `json:"nextEpochProofOfPossession"`
+	WorkerAddress                string     `json:"workerAddress"`
+	NextEpochStake               uint64     `json:"nextEpochStake"`
+	RewardsPool                  uint64     `json:"rewardsPool"`
+	ProjectUrl                   string     `json:"projectUrl"`
+	PendingTotalSuiWithdraw      uint64     `json:"pendingTotalSuiWithdraw"`
+	Description                  string     `json:"description"`
+	NexEpochWorkerAddress        string     `json:"nexEpochWorkerAddress"`
+	ExchangeRatesId              string     `json:"exchangeRatesId"`
+	NextEpochProtocolPubkeyBytes string     `json:"nextEpochProtocolPubkeyBytes"`
+	OperationCapId               string     `json:"operationCapId"`
+	NextEpochGasPrice            uint64     `json:"nextEpochGasPrice"`
+	StakingPoolSuiBalance        uint64     `json:"stakingPoolSuiBalance"`
+	NextEpochP2PAddress          string     `json:"nextEpochP2pAddress"`
+	ProtocolPubkeyBytes          string     `json:"protocolPubkeyBytes"`
+	StakingPoolDeactivationEpoch uint64     `json:"stakingPoolDeactivationEpoch"`
+	ExchangeRatesSize            uint64     `json:"exchangeRatesSize"`
+	PendingPoolTokenWithdraw     uint64     `json:"pendingPoolTokenWithdraw"`
+	ProofOfPossessionBytes       string     `json:"proofOfPossessionBytes"`
+	GasPrice                     uint64     `json:"gasPrice"`
+	PendingStake                 uint64     `json:"pendingStake"`
+	NextEpochCommissionRate      uint64     `json:"nextEpochCommissionRate"`
+	NextEpochStakeShare     float64
+}
+
+type SuiSystemStateSummary struct {
+	ActiveValidators               []SuiValidatorSummary `json:"activeValidators"`
+	AtRiskValidators               []SuiAddress          `json:"atRiskValidators"`
+	Epoch                          uint64                `json:"epoch"`
+	EpochDurationMs                uint64                `json:"epochDurationMs"`
+	EpochStartTimestampMs          uint64                `json:"epochStartTimestampMs"`
+	GovernanceStartEpoch           uint64                `json:"governanceStartEpoch"`
+	InactivePoolsId                string                `json:"inactivePoolsId"`
+	InactivePoolsSize              uint64                `json:"inactivePoolsSize"`
+	PendingActiveValidatorsId      string                `json:"pendingActiveValidatorsId"`
+	PendingActiveValidatorsSize    uint64                `json:"pendingActiveValidatorsSize"`
+	PendingRemovals                []interface{}         `json:"pendingRemovals"`
+	ProtocolVersion                uint64                `json:"protocolVersion"`
+	ReferenceGasPrice              uint64                `json:"referenceGasPrice"`
+	SafeMode                       bool                  `json:"safeMode"`
+	StakeSubsidyBalance            uint64                `json:"stakeSubsidyBalance"`
+	StakeSubsidyCurrentEpochAmount uint64                `json:"stakeSubsidyCurrentEpochAmount"`
+	StakeSubsidyEpochCounter       uint64                `json:"stakeSubsidyEpochCounter"`
+	StakingPoolMappingsId          string                `json:"stakingPoolMappingsId"`
+	StakingPoolMappingsSize        uint64                `json:"stakingPoolMappingsSize"`
+	StorageFund                    uint64                `json:"storageFund"`
+	SystemStateVersion             uint64                `json:"systemStateVersion"`
+	TotalStake                     uint64                `json:"totalStake"`
+	ValidatorCandidatesId          string                `json:"validatorCandidatesId"`
+	ValidatorCandidatesSize        uint64                `json:"validatorCandidatesSize"`
+	ValidatorReportRecords         []SuiAddress          `json:"validatorReportRecords"`
+}
+
+type CheckpointDigest string
+type EndOfEpochData interface{}
+type TransactionDigest string
+type CheckpointCommitment string
+
+type GasCostSummary struct {
+	ComputationCost uint64 `json:"computationCost"`
+	StorageCost     uint64 `json:"storageCost"`
+	StorageRebate   uint64 `json:"storageRebate"`
+}
+
+type Checkpoint struct {
+	CheckpointCommitments      []CheckpointCommitment `json:"checkpointCommitments"`
+	Digest                     CheckpointDigest       `json:"digest"`
+	EndOfEpochData             EndOfEpochData         `json:"endOfEpochData"`
+	Epoch                      uint64                 `json:" epoch"`
+	EpochRollingGasCostSummary GasCostSummary         `json:" epochRollingGasCostSummary"`
+	NetworkTotalTransactions   uint64                 `json:" networkTotalTransactions"`
+	PreviousDigest             CheckpointDigest       `json:" previousDigest"`
+	SequenceNumber             uint64                 `json:" sequenceNumber"`
+	TimestampMs                uint64                 `json:" timestampMs"`
+	Transactions               []TransactionDigest    `json:" transactions"`
+}
+
+/**
+ *  Old system state struct
+ */
 type SuiSystemState struct {
 	Epoch                  uint64            `json:"epoch"`
 	EpochStartTimestampMs  uint64            `json:"epoch_start_timestamp_ms"`
@@ -48,6 +146,7 @@ func (vr *ValidatorReports) UnmarshalJSON(b []byte) error {
 
 	// Parses all the validator reports
 	// @TODO this involves copying a bunch of memory, possibly unnecessary
+
 	var parsed_reports []ValidatorReport
 
 	for _, report := range reports {
@@ -156,7 +255,6 @@ type WithdrawContent struct {
 }
 
 type CheckpointContentsDigest string
-type CheckpointDigest string
 
 type CheckpointSummary struct {
 	ContentDigest              CheckpointContentsDigest `json:"content_digest"`
@@ -167,10 +265,4 @@ type CheckpointSummary struct {
 	PreviousDigest             CheckpointDigest         `json:"previous_digest"`
 	SequenceNumber             uint64                   `json:"sequence_number"`
 	TimestampMs                uint64                   `json:"timestamp_ms"`
-}
-
-type GasCostSummary struct {
-	ComputationCost uint64 `json:"computation_cost"`
-	StorageCost     uint64 `json:"storage_cost"`
-	StorageRebate   uint64 `json:"storage_rebate"`
 }
