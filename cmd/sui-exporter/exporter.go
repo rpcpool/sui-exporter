@@ -315,24 +315,24 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	}
 
 	if e.exportValidatorReports {
-		/*for _, reportedValidator := range e.state.ValidatorReportRecords.Records {
+		for reportedValidator, reports := range e.state.ValidatorReportRecords {
 			var name string
-			for _, validator := range e.state.Validators.ActiveValidators {
-				if validator.Metadata.SuiAddress == reportedValidator.Key {
-					name = string(validator.Metadata.Name[:])
+			for _, validator := range e.state.ActiveValidators {
+				if validator.SuiAddress == reportedValidator {
+					name = string(validator.Name[:])
 				}
 			}
 
-			for _, report := range reportedValidator.Reports {
+			for _, report := range reports {
 				var reporter_name string
-				for _, validator := range e.state.Validators.ActiveValidators {
-					if validator.Metadata.SuiAddress == report {
-						reporter_name = string(validator.Metadata.Name[:])
+				for _, validator := range e.state.ActiveValidators {
+					if validator.SuiAddress == report {
+						reporter_name = string(validator.Name[:])
 					}
 				}
-				ch <- prometheus.MustNewConstMetric(e.validatorReport, prometheus.CounterValue, float64(1), e.epoch, reportedValidator.Key, name, report, reporter_name)
+				ch <- prometheus.MustNewConstMetric(e.validatorReport, prometheus.CounterValue, float64(1), e.epoch, string(reportedValidator), name, string(report), reporter_name)
 			}
-		}*/
+		}
 	}
 
 	e.nodeStateMutex.RUnlock()

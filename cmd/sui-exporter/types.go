@@ -86,7 +86,7 @@ type SuiSystemStateSummary struct {
 	ValidatorCandidatesSize               uint64                `json:"validatorCandidatesSize,string"`
 	ValidatorLowStakeGracePeriod          uint64                `json:"validatorLowStakeGracePeriod,string"`
 	ValidatorLowStakeThreshold            uint64                `json:"validatorLowStakeThreshold,string"`
-	ValidatorReportRecords                []interface{}         `json:"validatorReportRecords"`
+	ValidatorReportRecords                ValidatorReports      `json:"validatorReportRecords"`
 	ValidatorVeryLowStakeThreshold        uint64                `json:"validatorVeryLowStakeThreshold,string"`
 }
 
@@ -114,14 +114,7 @@ type Checkpoint struct {
 	Transactions               []TransactionDigest    `json:" transactions"`
 }
 
-type ValidatorReports struct {
-	Records []ValidatorReport
-}
-
-type ValidatorReport struct {
-	Key     string
-	Reports []string
-}
+type ValidatorReports map[SuiAddress][]SuiAddress
 
 // Custom unmarshaller to make the validator reports look nicer
 // We chuck away the "contents" dicts that exists on both levels
@@ -130,38 +123,32 @@ func (vr *ValidatorReports) UnmarshalJSON(b []byte) error {
 		return nil
 	}
 
-	var f interface{}
+	var f [][]interface{}
 
 	err := json.Unmarshal(b, &f)
 	if err != nil {
 		return err
 	}
 
-	m := f.(map[string]interface{})
-
-	// Has a single key, "contents", skip this key
-	reports := m["contents"].([]interface{})
-
 	// Parses all the validator reports
 	// @TODO this involves copying a bunch of memory, possibly unnecessary
+	validator_reports := make(ValidatorReports, len(f)/2)
 
-	var parsed_reports []ValidatorReport
-
-	for _, report := range reports {
-		var single_vr *ValidatorReport = new(ValidatorReport)
-		r := report.(map[string]interface{})
-
-		single_vr.Key = r["key"].(string)
-		c := (r["value"].(map[string]interface{}))["contents"].([]interface{})
-		// Append all the reports
-		for i := range c {
-			single_vr.Reports = append(single_vr.Reports, fmt.Sprintf("%v", c[i]))
+	for _, raw_report := range f {
+		if len(raw_report)%2 != 0 {
+			return fmt.Errorf("invalid validator report format, it's not a tuple, length=%d elements=%v", len(raw_report), raw_report)
 		}
 
-		parsed_reports = append(parsed_reports, *single_vr)
+		reported_validator := raw_report[0].(string)
+
+		var reports []SuiAddress
+		for _, report := range raw_report[1].([]interface{}) {
+			reports = append(reports, SuiAddress(report.(string)))
+		}
+		validator_reports[SuiAddress(reported_validator)] = reports
 	}
 
-	vr.Records = parsed_reports
+	*vr = validator_reports
 
 	return nil
 }
