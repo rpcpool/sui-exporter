@@ -9,71 +9,85 @@ type SuiAddress string
 
 type SuiValidatorSummary struct {
 	SuiAddress                   SuiAddress `json:"suiAddress"`
-	NextEpochNetAddress          string     `json:"nextEpochNetAddress"`
-	PoolTokenBalance             uint64     `json:"poolTokenBalance"`
 	P2PAddress                   string     `json:"p2pAddress"`
 	Name                         string     `json:"name"`
-	StakingPoolActivationEpoch   uint64     `json:"stakingPoolActivationEpoch"`
-	CommissionRate               uint64     `json:"commissionRate"`
+	CommissionRate               float64    `json:"commissionRate,string"`
 	NextEpochPrimaryAddress      string     `json:"nextEpochPrimaryAddress"`
-	VotingPower                  uint64     `json:"votingPower"`
-	StakingPoolId                string     `json:"stakingPoolId"`
-	NextEpochWorkerPubkeyBytes   string     `json:"nextEpochWorkerPubkeyBytes"`
 	ImageUrl                     string     `json:"imageUrl"`
+	Description                  string     `json:"description"`
+	GasPrice                     uint64     `json:"gasPrice,string"`
+	ExchangeRatesId              string     `json:"exchangeRatesId"`
+	ExchangeRatesSize            uint64     `json:"exchangeRatesSize,string"`
 	NetAddress                   string     `json:"netAddress"`
-	NetworkPubkeyBytes           string     `json:"networkPubkeyBytes"`
+	NextEpochNetAddress          string     `json:"nextEpochNetAddress"`
+	NextEpochWorkerAddress       string     `json:"nextEpochWorkerAddress"`
+	NextEpochProtocolPubkeyBytes string     `json:"nextEpochProtocolPubkeyBytes"`
+	NextEpochGasPrice            uint64     `json:"nextEpochGasPrice,string"`
+	NextEpochP2PAddress          string     `json:"nextEpochP2pAddress"`
 	NextEpochNetworkPubkeyBytes  string     `json:"nextEpochNetworkPubkeyBytes"`
 	NextEpochProofOfPossession   string     `json:"nextEpochProofOfPossession"`
-	WorkerAddress                string     `json:"workerAddress"`
-	NextEpochStake               uint64     `json:"nextEpochStake"`
-	RewardsPool                  uint64     `json:"rewardsPool"`
-	ProjectUrl                   string     `json:"projectUrl"`
-	PendingTotalSuiWithdraw      uint64     `json:"pendingTotalSuiWithdraw"`
-	Description                  string     `json:"description"`
-	NexEpochWorkerAddress        string     `json:"nexEpochWorkerAddress"`
-	ExchangeRatesId              string     `json:"exchangeRatesId"`
-	NextEpochProtocolPubkeyBytes string     `json:"nextEpochProtocolPubkeyBytes"`
-	OperationCapId               string     `json:"operationCapId"`
-	NextEpochGasPrice            uint64     `json:"nextEpochGasPrice"`
-	StakingPoolSuiBalance        uint64     `json:"stakingPoolSuiBalance"`
-	NextEpochP2PAddress          string     `json:"nextEpochP2pAddress"`
-	ProtocolPubkeyBytes          string     `json:"protocolPubkeyBytes"`
-	StakingPoolDeactivationEpoch uint64     `json:"stakingPoolDeactivationEpoch"`
-	ExchangeRatesSize            uint64     `json:"exchangeRatesSize"`
-	PendingPoolTokenWithdraw     uint64     `json:"pendingPoolTokenWithdraw"`
-	ProofOfPossessionBytes       string     `json:"proofOfPossessionBytes"`
-	GasPrice                     uint64     `json:"gasPrice"`
-	PendingStake                 uint64     `json:"pendingStake"`
-	NextEpochCommissionRate      uint64     `json:"nextEpochCommissionRate"`
-	NextEpochStakeShare     float64
+	NextEpochCommissionRate      uint64     `json:"nextEpochCommissionRate,string"`
+	NextEpochStakeShare          float64
+	NextEpochStake               uint64 `json:"nextEpochStake,string"`
+	NextEpochWorkerPubkeyBytes   string `json:"nextEpochWorkerPubkeyBytes"`
+	NetworkPubkeyBytes           string `json:"networkPubkeyBytes"`
+	OperationCapId               string `json:"operationCapId"`
+	PendingStake                 uint64 `json:"pendingStake,string"`
+	ProtocolPubkeyBytes          string `json:"protocolPubkeyBytes"`
+	ProjectUrl                   string `json:"projectUrl"`
+	PendingTotalSuiWithdraw      uint64 `json:"pendingTotalSuiWithdraw,string"`
+	PendingPoolTokenWithdraw     uint64 `json:"pendingPoolTokenWithdraw,string"`
+	PoolTokenBalance             uint64 `json:"poolTokenBalance,string"`
+	PrimaryAddress               string `json:"primaryAddress"`
+	ProofOfPossessionBytes       string `json:"proofOfPossessionBytes"`
+	RewardsPool                  uint64 `json:"rewardsPool,string"`
+	StakingPoolId                string `json:"stakingPoolId"`
+	StakingPoolSuiBalance        uint64 `json:"stakingPoolSuiBalance,string"`
+	StakingPoolActivationEpoch   uint64 `json:"stakingPoolActivationEpoch,string"`
+	StakingPoolDeactivationEpoch uint64 `json:"stakingPoolDeactivationEpoch,string"`
+	VotingPower                  uint64 `json:"votingPower,string"`
+	WorkerAddress                string `json:"workerAddress"`
+	WorkerPubkeyBytes            string `json:"workerPubkeyBytes"`
 }
 
 type SuiSystemStateSummary struct {
-	ActiveValidators               []SuiValidatorSummary `json:"activeValidators"`
-	AtRiskValidators               []SuiAddress          `json:"atRiskValidators"`
-	Epoch                          uint64                `json:"epoch"`
-	EpochDurationMs                uint64                `json:"epochDurationMs"`
-	EpochStartTimestampMs          uint64                `json:"epochStartTimestampMs"`
-	GovernanceStartEpoch           uint64                `json:"governanceStartEpoch"`
-	InactivePoolsId                string                `json:"inactivePoolsId"`
-	InactivePoolsSize              uint64                `json:"inactivePoolsSize"`
-	PendingActiveValidatorsId      string                `json:"pendingActiveValidatorsId"`
-	PendingActiveValidatorsSize    uint64                `json:"pendingActiveValidatorsSize"`
-	PendingRemovals                []interface{}         `json:"pendingRemovals"`
-	ProtocolVersion                uint64                `json:"protocolVersion"`
-	ReferenceGasPrice              uint64                `json:"referenceGasPrice"`
-	SafeMode                       bool                  `json:"safeMode"`
-	StakeSubsidyBalance            uint64                `json:"stakeSubsidyBalance"`
-	StakeSubsidyCurrentEpochAmount uint64                `json:"stakeSubsidyCurrentEpochAmount"`
-	StakeSubsidyEpochCounter       uint64                `json:"stakeSubsidyEpochCounter"`
-	StakingPoolMappingsId          string                `json:"stakingPoolMappingsId"`
-	StakingPoolMappingsSize        uint64                `json:"stakingPoolMappingsSize"`
-	StorageFund                    uint64                `json:"storageFund"`
-	SystemStateVersion             uint64                `json:"systemStateVersion"`
-	TotalStake                     uint64                `json:"totalStake"`
-	ValidatorCandidatesId          string                `json:"validatorCandidatesId"`
-	ValidatorCandidatesSize        uint64                `json:"validatorCandidatesSize"`
-	ValidatorReportRecords         []SuiAddress          `json:"validatorReportRecords"`
+	ActiveValidators                      []SuiValidatorSummary `json:"activeValidators"`
+	AtRiskValidators                      []SuiAddress          `json:"atRiskValidators"`
+	Epoch                                 uint64                `json:"epoch,string"`
+	EpochDurationMs                       uint64                `json:"epochDurationMs,string"`
+	EpochStartTimestampMs                 uint64                `json:"epochStartTimestampMs,string"`
+	InactivePoolsId                       string                `json:"inactivePoolsId"`
+	InactivePoolsSize                     uint64                `json:"inactivePoolsSize,string"`
+	MMxValidatorCount                     uint64                `json:"maxValidatorCount,string"`
+	MinValidatorJoiningStake              uint64                `json:"minValidatorJoiningStake,string"`
+	PendingActiveValidatorsId             string                `json:"pendingActiveValidatorsId"`
+	PendingActiveValidatorsSize           uint64                `json:"pendingActiveValidatorsSize,string"`
+	PendingRemovals                       []interface{}         `json:"pendingRemovals"`
+	ProtocolVersion                       uint64                `json:"protocolVersion,string"`
+	ReferenceGasPrice                     uint64                `json:"referenceGasPrice,string"`
+	SafeMode                              bool                  `json:"safeMode"`
+	SafeModeComputationRewards            uint64                `json:"safeModeComputationRewards.string"`
+	SafeModeNonRefundableStorageFee       uint64                `json:"safeModeNonRefundableStorageFee,string"`
+	SafeModeStorageRebates                uint64                `json:"safeModeStorageRebates,string"`
+	SafeModeStorageRewards                uint64                `json:"safeModeStorageRewards,string"`
+	StakeSubsidyBalance                   uint64                `json:"stakeSubsidyBalance,string"`
+	StakeSubsidyCurrentDistributionAmount uint64                `json:"stakeSubsidyCurrentDistributionAmount,string"`
+	StakeSubsidyDecreaseRate              uint64                `json:"stakeSubsidyDecreaseRate"`
+	StakeSubsidyDistributionCounter       uint64                `json:"stakeSubsidyDistributionCounter,string"`
+	StakeSubsidyPeriodLength              uint64                `json:"stakeSubsidyPeriodLength,string"`
+	StakeSubsidyStartEpoch                uint64                `json:"stakeSubsidyStartEpoch,string"`
+	StakingPoolMappingsId                 string                `json:"stakingPoolMappingsId"`
+	StakingPoolMappingsSize               uint64                `json:"stakingPoolMappingsSize,string"`
+	StorageFundNonRefundableBalance       uint64                `json:"storageFundNonRefundableBalance,string"`
+	StorageFundTotalObjectStorageRebates  uint64                `json:"storageFundTotalObjectStorageRebates,string"`
+	SystemStateVersion                    uint64                `json:"systemStateVersion,string"`
+	TotalStake                            uint64                `json:"totalStake,string"`
+	ValidatorCandidatesId                 string                `json:"validatorCandidatesId"`
+	ValidatorCandidatesSize               uint64                `json:"validatorCandidatesSize,string"`
+	ValidatorLowStakeGracePeriod          uint64                `json:"validatorLowStakeGracePeriod,string"`
+	ValidatorLowStakeThreshold            uint64                `json:"validatorLowStakeThreshold,string"`
+	ValidatorReportRecords                []interface{}         `json:"validatorReportRecords"`
+	ValidatorVeryLowStakeThreshold        uint64                `json:"validatorVeryLowStakeThreshold,string"`
 }
 
 type CheckpointDigest string
@@ -100,22 +114,6 @@ type Checkpoint struct {
 	Transactions               []TransactionDigest    `json:" transactions"`
 }
 
-/**
- *  Old system state struct
- */
-type SuiSystemState struct {
-	Epoch                  uint64            `json:"epoch"`
-	EpochStartTimestampMs  uint64            `json:"epoch_start_timestamp_ms"`
-	Info                   string            `json:"uid"`
-	Parameters             SystemParameters  `json:"parameters"`
-	ReferenceGasPrice      uint64            `json:"reference_gas_price"`
-	SafeMode               bool              `json:"safe_mode"`
-	StakeSubsidy           StakeSubsidy      `json:"stake_subsidy"`
-	StorageFundBalance     Balance           `json:"storage_fund"`
-	TreasuryCap            Supply            `json:"treasury_cap"`
-	ValidatorReportRecords *ValidatorReports `json:"validator_report_records"`
-	Validators             ValidatorSet      `json:"validators"`
-}
 type ValidatorReports struct {
 	Records []ValidatorReport
 }
@@ -186,72 +184,6 @@ type Balance struct {
 
 type Supply struct {
 	Value uint64
-}
-
-type ValidatorSet struct {
-	ValidatorStake            uint64      `json:"validator_stake"`
-	DelegationStake           uint64      `json:"delegation_stake"`
-	ActiveValidators          []Validator `json:"active_validators"`
-	PendingDelegationSwitches interface{} `json:"pending_delegation_switches"`
-}
-
-type Validator struct {
-	Metadata              ValidatorMetadata `json:"metadata"`
-	VotingPower           uint64            `json:"voting_power"`
-	StakeAmount           uint64            `json:"stake_amount"`
-	PendingStake          uint64            `json:"pending_stake"`
-	PendingWithdraw       uint64            `json:"pending_withdraw"`
-	GasPrice              uint64            `json:"gas_price"`
-	DelegationStakingPool StakePool         `json:"delegation_staking_pool"`
-	CommissionRate        uint64            `json:"commission_rate"`
-}
-
-type ValidatorMetadata struct {
-	SuiAddress              string `json:"sui_address"`
-	PubkeyBytes             []byte `json:"pubkey_bytes"`
-	NetworkPubkeyBytes      []byte `json:"network_pubkey_bytes"`
-	WorkerPubkeyBytes       []byte `json:"worker_pubkey_bytes"`
-	ProofOfPossessionBytes  []byte `json:"proof_of_possession_bytes"`
-	Name                    []byte
-	Description             []byte
-	ImageUrl                []byte `json:"image_url"`
-	ProjectUrl              []byte `json:"project_url"`
-	NetAddress              []byte `json:"net_address"`
-	ConsensusAddress        []byte `json:"consensus_address"`
-	WorkerAddress           []byte `json:"worker_address"`
-	NextEpochStake          uint64 `json:"next_epoch_stake"`
-	NextEpochDelegation     uint64 `json:"next_epoch_delegation"`
-	NextEpochGasPrice       uint64 `json:"next_epoch_gas_price"`
-	NextEpochCommissionRate uint64 `json:"next_epoch_comission_rate"`
-	NextEpochTotalStake     uint64
-	NextEpochStakeShare     float64
-	NextEpochSelfStakeShare float64
-}
-
-type StakePool struct {
-	ValidatorAddress      string      `json:"validator_address"`
-	StartingEpoch         uint64      `json:"starting_epoch"`
-	SuiBalance            uint64      `json:"sui_balance"`
-	RewardsPool           Balance     `json:"rewards_pool"`
-	DelegationTokenSupply Supply      `json:"delegation_token_supply"`
-	PendingWithdraws      Withdrawals `json:"pending_withdraws"`
-	PendingDelegations    Delegations `json:"pending_delegations"`
-}
-
-type Delegations struct {
-	Id   string
-	Size uint64
-	Head interface{}
-	Tail interface{}
-}
-
-type Withdrawals struct {
-	Contents WithdrawContent
-}
-
-type WithdrawContent struct {
-	Id   string
-	Size uint64
 }
 
 type CheckpointContentsDigest string
