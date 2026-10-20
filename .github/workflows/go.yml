@@ -9,9 +9,7 @@ on:
 jobs:
 
   build:
-    runs-on:
-      group: Public
-      labels: [self-hosted, rpcpool, public]
+    runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v2
