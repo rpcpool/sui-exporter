@@ -23,9 +23,8 @@ jobs:
         run: go build -v ./...
 
       - name: publish artifacts
-        uses: actions/upload-artifact@v3.1.1
+        uses: actions/upload-artifact@v4
         with:
           name: binaries
-          path: 
-            - sui-exporter
+          path: sui-exporter
 
