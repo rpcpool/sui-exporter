@@ -1,0 +1,39 @@
+# .goreleaser.yaml for rpcpool/sui-exporter
+#
+# Binaries-ci consumes this file when a build is dispatched for (org=rpcpool, repo=sui-exporter, tag=vX.Y.Z).
+# Binaries-ci injects signing, GCS upload and the Slack announce; do not add `signs:`, `blobs:` or `announce:` here.
+#
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+
+version: 2
+
+before:
+    hooks:
+        - go mod tidy
+
+builds:
+    - id: sui-exporter
+      main: ./cmd/sui-exporter
+      binary: sui-exporter
+      env:
+          - CGO_ENABLED=0
+      ldflags:
+          - -s -w
+      goos:
+          - linux
+      goarch:
+          - amd64
+
+archives:
+    - id: sui-exporter
+      ids: [sui-exporter]
+      name_template: sui-exporter-linux-amd64
+      formats: [binary]
+
+release:
+    header: |
+        go {{ .Env.GO_VERSION }}
+
+changelog:
+    sort: asc
+    use: github
